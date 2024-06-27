@@ -24,9 +24,10 @@ def main(dataset_type, model_type):
         image_folder = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_rgb\Scene01\15-deg-left\frames\rgb\Camera_0'
         bbox_file = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_textgt\Scene01\15-deg-left\bbox.txt'
         pose_file = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_textgt\Scene01\15-deg-left\pose.txt'
-        dataset = load_virtual_kitti_dataset(image_folder, bbox_file, pose_file, input_shape, model_type)
-        dataset = dataset.batch(32)
-        visualize_ground_truth_vKITTI(test_dataset)
+        train_dataset, test_dataset = load_virtual_kitti_dataset(image_folder, bbox_file, pose_file, input_shape, model_type)
+        visualize_ground_truth_vKITTI(train_dataset)
+        train_dataset = train_dataset.batch(32)
+        test_dataset = test_dataset.batch(32)
 
     if model_type == "2D":
         model = VoxelRCNN2D(input_shape)
