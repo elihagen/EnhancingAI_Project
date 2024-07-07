@@ -12,54 +12,38 @@ def read_and_preprocess_image(filename, input_shape):
     image = np.array(image) / 255.0  # normalize as above
     return image
 
+# def adjust_bboxes(bboxes, original_shape, input_shape):
+#     height_ratio = original_shape[0] / input_shape[0]
+#     width_ratio = original_shape[1] / input_shape[1]
+    
+#     adjusted_bboxes = bboxes.astype(np.float32).copy()
+#     adjusted_bboxes[:, [0, 1]] = (adjusted_bboxes[:, [0, 1]] / width_ratio).astype(np.int32)
+#     adjusted_bboxes[:, [2, 3]] = (adjusted_bboxes[:, [2, 3]] / height_ratio).astype(np.int32)
+    
+#     return adjusted_bboxes
 
 def data_generator(grouped_data, input_shape):
     for filename, bboxes, labels in grouped_data:
         image = read_and_preprocess_image(filename, input_shape)
         yield image, (bboxes.astype(np.int32), labels.astype(np.int32))
 
-def load_virtual_kitti_dataset(image_folder, bbox_file, pose_file, input_shape, split_ration = 0.8, model_type = "2D"):
-    image_filenames = sorted([os.path.join(image_folder, filename) for filename in os.listdir(image_folder) if filename.endswith('.jpg')])
-
-    bbox_data = pd.read_csv(bbox_file, delim_whitespace=True)
-    print(bbox_data["frame"])
-
-    # Read pose data and select required columns
-    pose_data = pd.read_csv(pose_file, delim_whitespace=True)
-
-    print(bbox_data)
-    grouped_data = []
-    for filename in image_filenames:
-        frame_id = os.path.splitext(os.path.basename(filename))[0]
-        frame_id_original = int(frame_id.split('_')[-1])
-
-        # Selecting camera 0's bounding boxes for the given frame
-        if frame_id_original in bbox_data[bbox_data['cameraID'] == 0]['frame'].values:
-            bboxes = bbox_data[(bbox_data['frame'] == frame_id_original) & (bbox_data['cameraID'] == 0)][['left', 'right', 'top', 'bottom']].values
-        else:
-            bboxes = np.zeros((1, 4), dtype=np.float32)
-        grouped_data.append((filename, bboxes))
+def load_virtual_kitti_dataset(csv_filename, input_shape, split_ratio = 0.8, model_type = "2D"):
+    # Load data from CSV
+    padded_data = pd.read_csv(csv_filename)
     
-    padded_data = []
-    max_objects = 16  # Maximum number of objects per image (bboxes and orientations)
-    for filename, bboxes in grouped_data:
-        padded_bboxes = np.zeros((max_objects, 4), dtype=np.float32)
-        padded_labels = np.ones((max_objects,), dtype=np.int32) 
-               
-        num_bboxes = min(max_objects, bboxes.shape[0])
-        
-        padded_bboxes[:num_bboxes, :] = bboxes[:num_bboxes, :]
-        padded_labels[:num_bboxes] = 0  
-              
-        padded_data.append((filename, padded_bboxes, padded_labels))
+    grouped_data = []
+    for filename, group in padded_data.groupby('filename'):
+        bboxes = group[['left', 'right', 'top', 'bottom']].values
+        labels = group['label'].values
+        grouped_data.append((filename, bboxes, labels))
 
-    dataset = tf.data.Dataset.from_generator(lambda: data_generator(padded_data, input_shape),
+    dataset = tf.data.Dataset.from_generator(lambda: data_generator(grouped_data, input_shape),
                                              output_signature=(tf.TensorSpec(shape=input_shape, dtype=tf.float32),
                                                                (tf.TensorSpec(shape=(None, 4), dtype=tf.float32),
                                                                 tf.TensorSpec(shape=(None,), dtype=tf.int32))))
     
-    num_samples = len(padded_data)
-    train_size = int(num_samples * 0.8)
+    num_samples = len(grouped_data)
+    train_size = int(num_samples * split_ratio)
     
     # Shuffle the dataset before splitting
     dataset = dataset.shuffle(num_samples, reshuffle_each_iteration=False)

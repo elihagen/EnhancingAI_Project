@@ -10,7 +10,7 @@ import argparse
 def main(dataset_type, model_type):
     # Input image shape
     input_shape = (224, 224, 3)
-
+    
     # load kitti datasetpi
     if dataset_type == "kitti":
         train_dataset = load_kitti_dataset('train[:80%]', input_shape, model_type)
@@ -21,10 +21,13 @@ def main(dataset_type, model_type):
         
     # load virtual kitti dataset
     elif dataset_type == "vkitti": 
-        image_folder = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_rgb\Scene01\15-deg-left\frames\rgb\Camera_0'
-        bbox_file = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_textgt\Scene01\15-deg-left\bbox.txt'
-        pose_file = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_textgt\Scene01\15-deg-left\pose.txt'
-        train_dataset, test_dataset = load_virtual_kitti_dataset(image_folder, bbox_file, pose_file, input_shape, model_type)
+        csv_file =  r"C:\Arbeitsordner\Abgaben_repo\padded_data_vkitti.csv"
+        split_ratio = 0.8
+        # image_folder = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_rgb\Scene01\15-deg-left\frames\rgb\Camera_0'
+        # bbox_file = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_textgt\Scene01\15-deg-left\bbox.txt'
+        # pose_file = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_textgt\Scene01\15-deg-left\pose.txt'
+        
+        train_dataset, test_dataset = load_virtual_kitti_dataset(csv_file, input_shape, split_ratio, model_type)
         visualize_ground_truth_vKITTI(train_dataset)
         train_dataset = train_dataset.batch(32)
         test_dataset = test_dataset.batch(32)

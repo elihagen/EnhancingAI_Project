@@ -15,11 +15,11 @@ def visualize_ground_truth_vKITTI(dataset):
         for bbox_label in bbox.numpy():
             if np.all(bbox_label == 0):
                 continue
-            print("label", bbox_label)
             left, right, top, bottom = bbox_label
             bbox_width = right - left
             bbox_height = bottom - top
-            rect = patches.Rectangle((left, top), bbox_width, bbox_height, linewidth=1, edgecolor='r', facecolor='none')
+    
+            rect = patches.Rectangle((left, top), bbox_width, bbox_height, linewidth=3, edgecolor='r', facecolor='none')
             axes.add_patch(rect)
 
     plt.tight_layout()
