@@ -97,7 +97,7 @@ def preprocess(example, input_shape):
 
     return image, (bbox, label)
 
-def load_kitti_dataset(split, input_shape, model_type = "2D"):
+def load_kitti_dataset(split, input_shape, model_type):
     # Load dataset
     dataset = tfds.load('kitti', split=split)
 
@@ -107,3 +107,15 @@ def load_kitti_dataset(split, input_shape, model_type = "2D"):
 
 
     return dataset
+
+
+def load_combined_dataset(csv_filename, kitti_split, input_shape, split_ratio, model_type):
+    kitti_train = load_kitti_dataset(kitti_split[0], input_shape, model_type)
+    kitti_test = load_kitti_dataset(kitti_split[1], input_shape, model_type)
+    
+    vkitti_train, vkitti_test = load_virtual_kitti_dataset(csv_filename, input_shape, split_ratio, model_type)
+    
+    combined_train = kitti_train.concatenate(vkitti_train)
+    combined_test = kitti_test.concatenate(vkitti_test)
+    
+    return combined_train, combined_test

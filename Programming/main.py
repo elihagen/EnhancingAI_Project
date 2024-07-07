@@ -1,7 +1,7 @@
 
 from visualization import visualize_ground_truth_vKITTI, visualize_ground_truth_KITTI
 from model_objdetection import VoxelRCNN2D, VoxelRCNN3D
-from preprocessing import load_virtual_kitti_dataset, load_kitti_dataset
+from preprocessing import load_virtual_kitti_dataset, load_kitti_dataset, load_combined_dataset
 import tensorflow_datasets as tfds
 import tensorflow as tf
 import argparse
@@ -31,6 +31,12 @@ def main(dataset_type, model_type):
         visualize_ground_truth_vKITTI(train_dataset)
         train_dataset = train_dataset.batch(32)
         test_dataset = test_dataset.batch(32)
+        
+    elif dataset_type == "combined":
+        csv_file = r"C:\Arbeitsordner\Abgaben_repo\padded_data_vkitti.csv"
+        kitti_split = ['train[:80%]', 'train[80%:]']
+        train_dataset, test_dataset = load_combined_dataset(csv_file, kitti_split, input_shape, 0.8, model_type)
+        
 
     if model_type == "2D":
         model = VoxelRCNN2D(input_shape)
@@ -47,8 +53,8 @@ def main(dataset_type, model_type):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Object Detection with VoxelRCNN')
-    parser.add_argument('--dataset', type=str, default='kitti', choices=['kitti', 'vkitti'],
-                        help='Dataset type: kitti or vkitti')
+    parser.add_argument('--dataset', type=str, default='kitti', choices=['kitti', 'vkitti', 'combined'],
+                        help='Dataset type: kitti, vkitti or combined')
     parser.add_argument('--complexity', type=str, default='2D', choices=['2D', '3D'],
                         help='Model complexity: 2D or 3D')
     args = parser.parse_args()
