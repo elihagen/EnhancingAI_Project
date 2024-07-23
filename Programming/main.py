@@ -16,8 +16,8 @@ def main(dataset_type, model_type):
     if dataset_type == "kitti":
         train_dataset = load_kitti_dataset('train[:80%]', input_shape)
         test_dataset = load_kitti_dataset('train[80%:]', input_shape) 
-        train_dataset = train_dataset.padded_batch(64, padded_shapes=([224,224, 3], ([63, 4], [63])))
-        test_dataset = test_dataset.padded_batch(64, padded_shapes=([224,224, 3], ([63, 4], [63])))
+        train_dataset = train_dataset.shuffle(10000).padded_batch(64, padded_shapes=([224,224, 3], ([63, 4], [63])))
+        test_dataset = test_dataset.shuffle(10000).padded_batch(64, padded_shapes=([224,224, 3], ([63, 4], [63])))
         visualize_ground_truth_KITTI(test_dataset)
         
     # load virtual kitti dataset
@@ -30,15 +30,15 @@ def main(dataset_type, model_type):
         
         train_dataset, test_dataset = load_virtual_kitti_dataset(csv_file, input_shape, split_ratio, model_type)
         visualize_ground_truth_vKITTI(train_dataset)
-        train_dataset = train_dataset.batch(32)
-        test_dataset = test_dataset.batch(32)
+        train_dataset = train_dataset.shuffle(10000).batch(32)
+        test_dataset = test_dataset.shuffle(10000).batch(32)
         
     elif dataset_type == "combined":
         csv_file = r"C:\Arbeitsordner\Abgaben_repo\padded_data_vkitti_scene2.csv"
         kitti_split = ['train[:80%]', 'train[80%:]']
         train_dataset, test_dataset = load_combined_dataset(csv_file, kitti_split, input_shape, 0.8, model_type)
-        train_dataset = train_dataset.batch(32)
-        test_dataset = test_dataset.batch(32)
+        train_dataset = train_dataset.shuffle(10000).batch(32)
+        test_dataset = test_dataset.shuffle(10000).batch(32)
 
     if model_type == "2D":
         model = create_model(input_shape)
