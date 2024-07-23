@@ -25,7 +25,7 @@ def read_and_preprocess_image(filename, input_shape):
 def data_generator(grouped_data, input_shape):
     for filename, bboxes, labels in grouped_data:
         image = read_and_preprocess_image(filename, input_shape)
-        yield image, (bboxes.astype(np.int32), labels.astype(np.int32))
+        yield image, (bboxes.astype(np.int64), labels.astype(np.int64))
 
 def load_virtual_kitti_dataset(csv_filename, input_shape, split_ratio = 0.8, model_type = "2D"):
     # Load data from CSV
@@ -40,7 +40,7 @@ def load_virtual_kitti_dataset(csv_filename, input_shape, split_ratio = 0.8, mod
     dataset = tf.data.Dataset.from_generator(lambda: data_generator(grouped_data, input_shape),
                                              output_signature=(tf.TensorSpec(shape=input_shape, dtype=tf.float32),
                                                                (tf.TensorSpec(shape=(None, 4), dtype=tf.float32),
-                                                                tf.TensorSpec(shape=(None,), dtype=tf.int32))))
+                                                                tf.TensorSpec(shape=(None,), dtype=tf.int64))))
     
     num_samples = len(grouped_data)
     train_size = int(num_samples * split_ratio)
@@ -60,13 +60,13 @@ def preprocess_image(image, bbox, label, input_shape):
     # Filter out non-car objects (car: type = 0)
     
     car_indices = tf.where(label == 0)[:, 0]
-        
+
     bbox = tf.gather(bbox, car_indices)
     label = tf.gather(label, car_indices)
-    
+   
     # filter out images with more objects inside the image
     num_objects = tf.shape(bbox)[0]
-    max_objects = 15
+    max_objects = 63
     # select max number of bboxes and orientation from the dataset
     bbox = tf.cond(num_objects <= max_objects,
                    lambda: bbox,
@@ -81,8 +81,11 @@ def preprocess_image(image, bbox, label, input_shape):
 
     # Handling multiple objects in a single image
     # Pad bounding boxes and orientations to a fixed number (16)
-    bbox = tf.pad(bbox, [[0, 16 - tf.shape(bbox)[0]], [0, 0]], constant_values=0)
-    label = tf.pad(label, [[0, 16 - tf.shape(label)[0]]], constant_values=1)
+    bbox = tf.pad(bbox, [[0, 63 - tf.shape(bbox)[0]], [0, 0]], constant_values=0)
+    label = tf.pad(label, [[0, 63 - tf.shape(label)[0]]], constant_values=1)
+
+    # tf.print("Padded Label content:", label, summarize=-1)
+    # tf.print("Padded BBox content:", bbox, summarize=-1)
 
     return image, (bbox, label)
 
@@ -91,13 +94,16 @@ def preprocess(example, input_shape):
     image = example['image']
     bbox = example['objects']['bbox']
     label = example['objects']['type']
-    
+
+    # tf.print("Original Label content:", label, summarize=-1)
+    # tf.print("Original BBox content:", bbox, summarize=-1)
     # Preprocess each image, bbox, label
     image, (bbox, label) = preprocess_image(image, bbox, label, input_shape)
-
+    
     return image, (bbox, label)
 
-def load_kitti_dataset(split, input_shape, model_type):
+
+def load_kitti_dataset(split, input_shape):
     # Load dataset
     dataset = tfds.load('kitti', split=split)
 
@@ -110,12 +116,12 @@ def load_kitti_dataset(split, input_shape, model_type):
 
 
 def load_combined_dataset(csv_filename, kitti_split, input_shape, split_ratio, model_type):
-    kitti_train = load_kitti_dataset(kitti_split[0], input_shape, model_type)
-    kitti_test = load_kitti_dataset(kitti_split[1], input_shape, model_type)
+    kitti_train = load_kitti_dataset(kitti_split[0], input_shape)
+    kitti_test = load_kitti_dataset(kitti_split[1], input_shape)
     
     vkitti_train, vkitti_test = load_virtual_kitti_dataset(csv_filename, input_shape, split_ratio, model_type)
     
     combined_train = kitti_train.concatenate(vkitti_train)
-    combined_test = kitti_test.concatenate(vkitti_test)
+    combined_test = kitti_test
     
     return combined_train, combined_test
