@@ -5,12 +5,14 @@ import tensorflow as tf
 import numpy as np
 
 def visualize_ground_truth_vKITTI(dataset):
-    fig, axes = plt.subplots( 1, figsize=(10, 10))
+    # dataset = dataset.shuffle(buffer_size=len(list(dataset)))
+    fig, axes = plt.subplots(1, 10, figsize=(25, 10))  # Create 5 subplots in a row
 
-    for i, (image, (bbox, orientation)) in enumerate(dataset.take(1)):
-        axes.imshow(image.numpy())
-        axes.set_title(f"Sample {i+1}")
-        axes.axis('off')
+    for i, (image, (bbox, orientation)) in enumerate(dataset.take(10)):
+        ax = axes[i]
+        ax.imshow(image.numpy())
+        ax.set_title(f"Sample {i+1}")
+        ax.axis('off')
 
         for bbox_label in bbox.numpy():
             if np.all(bbox_label == 0):
@@ -20,7 +22,7 @@ def visualize_ground_truth_vKITTI(dataset):
             bbox_height = bottom - top
     
             rect = patches.Rectangle((left, top), bbox_width, bbox_height, linewidth=3, edgecolor='r', facecolor='none')
-            axes.add_patch(rect)
+            ax.add_patch(rect)
 
     plt.tight_layout()
     plt.show()
