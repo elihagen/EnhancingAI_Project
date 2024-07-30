@@ -15,29 +15,29 @@ def main(dataset_type, model_type):
     
     # load kitti datasetpi
     if dataset_type == "kitti":
-        train_dataset = load_kitti_dataset('train[:80%]', input_shape)
-        test_dataset = load_kitti_dataset('train[80%:]', input_shape) 
+        train_dataset = load_kitti_dataset('train[:2%]', input_shape)
+        test_dataset = load_kitti_dataset('train[2%:3%]', input_shape) 
         train_dataset = train_dataset.shuffle(10000).padded_batch(64, padded_shapes=([224,224, 3], ([63, 4], [63])))
         test_dataset = test_dataset.shuffle(10000).padded_batch(64, padded_shapes=([224,224, 3], ([63, 4], [63])))
         visualize_ground_truth_KITTI(test_dataset)
         
     # load virtual kitti dataset
     elif dataset_type == "vkitti": 
-        csv_file =  r"C:\Arbeitsordner\Abgaben_repo\padded_data_vkitti_scene1.csv"
+        csv_file =  r"C:\Arbeitsordner\Abgaben_repo\padded_data_vkitti_test.csv"
         split_ratio = 0.8
         # image_folder = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_rgb\Scene01\15-deg-left\frames\rgb\Camera_0'
         # bbox_file = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_textgt\Scene01\15-deg-left\bbox.txt'
         # pose_file = r'C:\Arbeitsordner\Abgaben_repo\vkitti_2.0.3_textgt\Scene01\15-deg-left\pose.txt'
         
-        train_dataset, test_dataset = load_virtual_kitti_dataset(csv_file, input_shape,original_shape, split_ratio, model_type)
-        visualize_ground_truth_vKITTI(train_dataset)
+        train_dataset, test_dataset = load_virtual_kitti_dataset(csv_file, input_shape,original_shape, split_ratio)
+        visualize_ground_truth_vKITTI(train_dataset, input_shape)
         train_dataset = train_dataset.shuffle(10000).batch(32)
         test_dataset = test_dataset.shuffle(10000).batch(32)
         
     elif dataset_type == "combined":
-        csv_file = r"C:\Arbeitsordner\Abgaben_repo\padded_data_vkitti_scene2.csv"
+        csv_file = r"C:\Arbeitsordner\Abgaben_repo\padded_data_vkitti_test.csv"
         kitti_split = ['train[:80%]', 'train[80%:]']
-        train_dataset, test_dataset = load_combined_dataset(csv_file, kitti_split, input_shape, original_shape, 0.8, model_type)
+        train_dataset, test_dataset = load_combined_dataset(csv_file, kitti_split, input_shape, original_shape, 0.8)
         train_dataset = train_dataset.shuffle(10000).batch(32)
         test_dataset = test_dataset.shuffle(10000).batch(32)
 
@@ -52,9 +52,11 @@ def main(dataset_type, model_type):
                   loss={'bbox_reshaped': 'mse', 'label_reshaped': 'binary_crossentropy'},
                   metrics={'bbox_reshaped': 'mae', 'label_reshaped': tf.keras.metrics.BinaryAccuracy(threshold=0.5)})
 
+    # Set up callbacks
+    csv_logger = tf.keras.callbacks.CSVLogger('train_log.csv', append=True)
     
     # Train the model
-    model.fit(train_dataset, epochs=5, validation_data=test_dataset)
+    model.fit(train_dataset, epochs=2, validation_data=test_dataset, callbacks=[csv_logger])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Object Detection with VoxelRCNN')

@@ -14,24 +14,23 @@ def read_and_preprocess_image(filename, input_shape):
     return image
 
 def adjust_bboxes(bboxes, original_shape, input_shape):
-    height_ratio = original_shape[0] / input_shape[1]
-    width_ratio = original_shape[1] / input_shape[0]
-    
+   
     adjusted_bboxes = bboxes.astype(np.float32).copy()
-    adjusted_bboxes[:, [0, 1]] = (adjusted_bboxes[:, [0, 1]] / height_ratio).astype(np.int32)
-    adjusted_bboxes[:, [2, 3]] = (adjusted_bboxes[:, [2, 3]] / width_ratio).astype(np.int32)
+    adjusted_bboxes[:, [0, 1]] = (adjusted_bboxes[:, [0, 1]] / original_shape[0]).astype(np.float32)
+    adjusted_bboxes[:, [2, 3]] = (adjusted_bboxes[:, [2, 3]] / original_shape[1]).astype(np.float32)
     
     return adjusted_bboxes
 
 def data_generator(grouped_data, input_shape, original_shape):
     for filename, bboxes, labels in grouped_data:
+        filename = "/data" + filename
         image = read_and_preprocess_image(filename, input_shape)
         bboxes = adjust_bboxes(bboxes, original_shape, input_shape)
-        yield image, (bboxes.astype(np.int32), labels.astype(np.int32))
+        yield image, (bboxes.astype(np.float32), labels.astype(np.int32))
 
-def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio = 0.8, model_type = "2D"):
+def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio = 0.8):
     # Load data from CSV
-    padded_data = pd.read_csv(csv_filename)
+    padded_data = pd.read_csv(csv_filename, nrows = 20000)
     
     grouped_data = []
     for filename, group in padded_data.groupby('filename'):
@@ -41,7 +40,7 @@ def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_
 
     dataset = tf.data.Dataset.from_generator(lambda: data_generator(grouped_data, input_shape, original_shape),
                                              output_signature=(tf.TensorSpec(shape=input_shape, dtype=tf.float32),
-                                                               (tf.TensorSpec(shape=(None, 4), dtype=tf.int32),
+                                                               (tf.TensorSpec(shape=(None, 4), dtype=tf.float32),
                                                                 tf.TensorSpec(shape=(None,), dtype=tf.int32))))
     
     num_samples = len(grouped_data)
@@ -56,7 +55,23 @@ def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_
 
     return train_dataset, test_dataset
 
-
+# def adjust_bboxes_kitti(bboxes, input_shape):
+#     height_ratio = input_shape[0]
+#     width_ratio = input_shape[1] 
+    
+#     # Convert bboxes to float32 tensor if not already
+#     bboxes = tf.cast(bboxes, tf.float32)
+    
+#     # Adjust bounding boxes
+#     adjusted_bboxes = bboxes
+#     adjusted_bboxes = tf.stack([
+#         adjusted_bboxes[:, 0]  * height_ratio,  # x1
+#         adjusted_bboxes[:, 1] *width_ratio,  # x2
+#         adjusted_bboxes[:, 2] *height_ratio, # y1
+#         adjusted_bboxes[:, 3] * width_ratio  # y2
+#     ], axis=-1)
+    
+#     return tf.cast(adjusted_bboxes, tf.int32)
 
 def preprocess_image(image, bbox, label, input_shape):
     # Filter out non-car objects (car: type = 0)
@@ -80,11 +95,14 @@ def preprocess_image(image, bbox, label, input_shape):
     
     image = tf.image.resize(image, (input_shape[0], input_shape[1]))
     image = image / 255.0 
+    
 
     # Handling multiple objects in a single image
     # Pad bounding boxes and orientations to a fixed number (16)
     bbox = tf.pad(bbox, [[0, 63 - tf.shape(bbox)[0]], [0, 0]], constant_values=0)
     label = tf.pad(label, [[0, 63 - tf.shape(label)[0]]], constant_values=1)
+    
+    print(image, label, bbox)
 
     # tf.print("Padded Label content:", label, summarize=-1)
     # tf.print("Padded BBox content:", bbox, summarize=-1)
@@ -117,11 +135,11 @@ def load_kitti_dataset(split, input_shape):
     return dataset
 
 
-def load_combined_dataset(csv_filename, kitti_split, input_shape, original_shape, split_ratio, model_type):
-    kitti_train = load_kitti_dataset(kitti_split[0], input_shape)
-    kitti_test = load_kitti_dataset(kitti_split[1], input_shape)
+def load_combined_dataset(csv_filename, kitti_split, input_shape, original_shape, split_ratio):
+    kitti_train = load_kitti_dataset(kitti_split[0], input_shape, original_shape)
+    kitti_test = load_kitti_dataset(kitti_split[1], input_shape, original_shape)
     
-    vkitti_train, _ = load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio, model_type)
+    vkitti_train, _ = load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio)
     
     combined_train = kitti_train.concatenate(vkitti_train)
     combined_test = kitti_test

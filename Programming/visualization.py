@@ -4,11 +4,15 @@ import matplotlib.patches as patches
 import tensorflow as tf
 import numpy as np
 
-def visualize_ground_truth_vKITTI(dataset):
+def visualize_ground_truth_vKITTI(dataset, input_size):
     # dataset = dataset.shuffle(buffer_size=len(list(dataset)))
     fig, axes = plt.subplots(1, 10, figsize=(25, 10))  # Create 5 subplots in a row
 
     for i, (image, (bbox, orientation)) in enumerate(dataset.take(10)):
+        
+        print("bbox; ", bbox)
+        width, height, _ = input_size
+        print(height, width)
         ax = axes[i]
         ax.imshow(image.numpy())
         ax.set_title(f"Sample {i+1}")
@@ -17,7 +21,12 @@ def visualize_ground_truth_vKITTI(dataset):
         for bbox_label in bbox.numpy():
             if np.all(bbox_label == 0):
                 continue
-            left, right, top, bottom = bbox_label
+        
+            left = bbox_label[0] * height
+            right = bbox_label[1] * width
+            top = bbox_label[2] * height
+            bottom = bbox_label[3] * width
+            print("left", left, right, top, bottom)
             bbox_width = right - left
             bbox_height = bottom - top
     
@@ -56,7 +65,8 @@ def plot_image_with_bbox(image, bboxes, orientations):
         bbox_height = ymax - ymin
         print("ymax", height - ymax)
         print("ymin", height - ymin)
-
+        print("all", ymin, xmin, ymax, xmax)
+        
         rect = patches.Rectangle((xmin, height - ymax), bbox_width, bbox_height, linewidth=1, edgecolor='g', facecolor='none')
         ax.add_patch(rect)
     plt.show()
