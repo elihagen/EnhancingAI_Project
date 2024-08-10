@@ -1,5 +1,5 @@
 
-from visualization import visualize_ground_truth_vKITTI, visualize_ground_truth_KITTI
+from visualization import visualize_ground_truth_vKITTI, visualize_ground_truth_KITTI, predict_and_plot
 from model_objdetection import VoxelRCNN2D, VoxelRCNN3D, create_model
 from preprocessing import load_virtual_kitti_dataset, load_kitti_dataset, load_combined_dataset
 import tensorflow_datasets as tfds
@@ -50,13 +50,14 @@ def main(dataset_type, model_type):
     
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                   loss={'bbox_reshaped': 'mse', 'label_reshaped': 'binary_crossentropy'},
-                  metrics={'bbox_reshaped': tf.keras.metrics.BinaryIoU(target_class_ids=[0, 1], threshold=0.3), 'label_reshaped': tf.keras.metrics.BinaryAccuracy(threshold=0.3)})
+                  metrics={'bbox_reshaped': ['mae', tf.keras.metrics.BinaryIoU(target_class_ids=[0], threshold = 0.3)], 'label_reshaped': [tf.keras.metrics.BinaryAccuracy(threshold=0.3), tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]})
 
     # Set up callbacks
     csv_logger = tf.keras.callbacks.CSVLogger('train_log.csv', append=True)
     
     # Train the model
-    model.fit(train_dataset, epochs=20, validation_data=test_dataset, callbacks=[csv_logger])
+    model.fit(train_dataset, epochs=25, validation_data=test_dataset, callbacks=[csv_logger])
+    predict_and_plot(model, test_dataset)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Object Detection with VoxelRCNN')
