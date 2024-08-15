@@ -29,8 +29,7 @@ def data_generator(grouped_data, input_shape, original_shape):
         bboxes = adjust_bboxes(bboxes, original_shape, input_shape)
         yield image, (bboxes.astype(np.float32), labels.astype(np.int32))
 
-def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio = 0.8):
-    # Load data from CSV
+def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio=(0.7, 0.15, 0.15)):
     padded_data = pd.read_csv(csv_filename)
     
     grouped_data = []
@@ -45,16 +44,17 @@ def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_
                                                                 tf.TensorSpec(shape=(None,), dtype=tf.int32))))
     
     num_samples = len(grouped_data)
-    train_size = int(num_samples * split_ratio)
+    train_size = int(num_samples * split_ratio[0])
+    val_size = int(num_samples * split_ratio[1])
+    test_size = num_samples - train_size - val_size
     
-    # Shuffle the dataset before splitting
     dataset = dataset.shuffle(num_samples, reshuffle_each_iteration=False)
 
-    # Split into training and testing datasets
     train_dataset = dataset.take(train_size)
-    test_dataset = dataset.skip(train_size)
+    val_dataset = dataset.skip(train_size).take(val_size)
+    test_dataset = dataset.skip(train_size + val_size)
 
-    return train_dataset, test_dataset
+    return train_dataset, val_dataset, test_dataset
 
 # def adjust_bboxes_kitti(bboxes, input_shape):
 #     height_ratio = input_shape[0]
@@ -123,26 +123,25 @@ def preprocess(example, input_shape):
     
     return image, (bbox, label)
 
+def load_kitti_dataset(train_split, val_split, test_split, input_shape):
+    train_dataset = tfds.load('kitti', split=train_split)
+    val_dataset = tfds.load('kitti', split=val_split)
+    test_dataset = tfds.load('kitti', split=test_split)
 
-def load_kitti_dataset(split, input_shape):
-    # Load dataset
-    dataset = tfds.load('kitti', split=split)
+    # Apply preprocessing
+    train_dataset = train_dataset.map(lambda example: preprocess(example, input_shape))
+    val_dataset = val_dataset.map(lambda example: preprocess(example, input_shape))
+    test_dataset = test_dataset.map(lambda example: preprocess(example, input_shape))
 
-    # Apply preprocessing function to dataset
-    dataset = dataset.map(lambda example: preprocess(example, input_shape))
-   # dataset = dataset.filter(lambda image, labels: image is not None)
-
-
-    return dataset
+    return train_dataset, val_dataset, test_dataset
 
 
-def load_combined_dataset(csv_filename, kitti_split, input_shape, original_shape, split_ratio):
-    kitti_train = load_kitti_dataset(kitti_split[0], input_shape, original_shape)
-    kitti_test = load_kitti_dataset(kitti_split[1], input_shape, original_shape)
+def load_combined_dataset(csv_filename, kitti_split, input_shape, original_shape, vkitti_train_ratio):
+    kitti_train = load_kitti_dataset(kitti_split[0], kitti_split[1], kitti_split[2], input_shape)
+    vkitti_train, vkitti_val, vkitti_test = load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio=(vkitti_train_ratio, 0.15, 0.15))
     
-    vkitti_train, _ = load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio)
+    combined_train = kitti_train[0].concatenate(vkitti_train)
+    combined_val = kitti_train[1].concatenate(vkitti_val)
+    combined_test = kitti_train[2].concatenate(vkitti_test)
     
-    combined_train = kitti_train.concatenate(vkitti_train)
-    combined_test = kitti_test
-    
-    return combined_train, combined_test
+    return combined_train, combined_val, combined_test

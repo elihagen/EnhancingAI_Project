@@ -56,7 +56,7 @@ def main(dataset_type, model_type):
     csv_logger = tf.keras.callbacks.CSVLogger('train_log.csv', append=True)
     
     # Train the model
-    model.fit(train_dataset, epochs = 30, validation_data=test_dataset, callbacks=[csv_logger])
+    model.fit(train_dataset, epochs=30, validation_data=test_dataset, callbacks=[csv_logger])
     predict_and_plot(model, test_dataset)
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ def plot_image_with_bbox(image, bboxes, orientations):
 
 # Plot results after training
 def predict_and_plot(model, test_dataset):
-    log_dir = "/home/student/e/ehagensieker/programming/HPC_files/Programming/Colab"
+    log_dir = "/content/drive/MyDrive/EAI_data/"
     
     for i, (images, (true_boxes, true_labels)) in enumerate(test_dataset.take(1)):
         # Make predictions
@@ -117,6 +117,6 @@ def predict_and_plot(model, test_dataset):
             plt.title(f'Sample {j}')
             
             # Save the plot
-            image_filename =  log_dir + "/sample_" + str(i) + "_image_" + str(j) + ".png"
+            image_filename =  log_dir + "/val_sample_" + str(i) + "_image_" + str(j) + ".png"
             plt.savefig(image_filename)
             plt.close()
