@@ -66,6 +66,11 @@ def main(dataset_type, model_type):
     # Create a dictionary of metric names and their corresponding values
     metrics_dict = dict(zip(metric_names, val_loss_and_metrics))
     
+    # save model
+    model_save_path = '/content/drive/MyDrive/EAI_data/saved_model_' + str(dataset_type) + '_' + str(model_type) + '.h5'
+    model.save(model_save_path)
+    print(f"Model saved at {model_save_path}")
+
     # Print metrics
     print("Validation Metrics:")
     for name, value in metrics_dict.items():
