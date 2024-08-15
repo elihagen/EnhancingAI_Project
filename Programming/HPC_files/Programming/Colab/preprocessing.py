@@ -41,7 +41,7 @@ def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_
     dataset = tf.data.Dataset.from_generator(lambda: data_generator(grouped_data, input_shape, original_shape),
                                              output_signature=(tf.TensorSpec(shape=input_shape, dtype=tf.float32),
                                                                (tf.TensorSpec(shape=(None, 4), dtype=tf.float32),
-                                                                tf.TensorSpec(shape=(None,), dtype=tf.int32))))
+                                                                tf.TensorSpec(shape=(None,), dtype=tf.int64))))
     
     num_samples = len(grouped_data)
     train_size = int(num_samples * split_ratio[0])

@@ -52,7 +52,7 @@ def main(dataset_type, model_type):
     
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
                   loss={'bbox_reshaped': 'mse', 'label_reshaped': 'binary_crossentropy'},
-                  metrics={'bbox_reshaped': ['mae', tf.keras.metrics.BinaryIoU(target_class_ids=[0], threshold = 0.3)], 'label_reshaped': [tf.keras.metrics.BinaryAccuracy(threshold=0.3), tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]})
+                  metrics={'bbox_reshaped': ['mae', tf.keras.metrics.BinaryIoU(target_class_ids=[0, 1], threshold = 0.3)], 'label_reshaped': [tf.keras.metrics.BinaryAccuracy(threshold=0.3), tf.keras.metrics.Precision(), tf.keras.metrics.Recall()]})
 
     # Set up callbacks
     csv_logger = tf.keras.callbacks.CSVLogger('/content/drive/MyDrive/EAI_data/train_log_kitti_val.csv', append=True)
