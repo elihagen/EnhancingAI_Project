@@ -5,7 +5,6 @@ import tensorflow as tf
 import numpy as np
 
 def visualize_ground_truth_vKITTI(dataset, input_size):
-    # dataset = dataset.shuffle(buffer_size=len(list(dataset)))
     fig, axes = plt.subplots(1, 10, figsize=(25, 10))  # Create 5 subplots in a row
 
     for i, (image, (bbox, orientation)) in enumerate(dataset.take(10)):
@@ -41,7 +40,7 @@ def visualize_ground_truth_KITTI(dataset):
         # Plot image with ground truth bounding boxes
         plot_image_with_bbox(image[0], bbox_labels[0], orientation_labels[0])
 
-def plot_image_with_bbox(image, bboxes, orientations):
+def plot_image_with_bbox(image, bboxes):
     height, width, _ = image.shape
     fig, ax = plt.subplots(1)
     
@@ -69,40 +68,23 @@ def plot_image_with_bbox(image, bboxes, orientations):
 def predict_and_plot(model, test_dataset):
     log_dir = "/content/drive/MyDrive/EAI_data/"
     
-    for i, (images, (true_boxes, true_labels)) in enumerate(test_dataset.take(1)):
+    for i, (images, (_,_)) in enumerate(test_dataset.take(1)):
         # Make predictions
         predictions = model.predict(images)
         
         # Extract predicted bounding boxes and labels
-        pred_boxes = predictions[0]  # Adjust the index based on your model output
-        pred_labels = predictions[1] # Adjust the index based on your model output
+        pred_boxes = predictions[0]  
         
         # Iterate over a few samples to plot
-        for j in range(min(5, len(images))):  # Number of samples to plot
-            # Convert TensorFlow tensors to NumPy arrays (only if needed)
+        for j in range(min(5, len(images))): 
             image = images[j].numpy()  
             image = np.clip(image * 255, 0, 255).astype(np.uint8)  # Scale and convert to uint8
             
-            true_box = true_boxes[j] 
-            true_label = true_labels[j] 
-            
-            # Plot image
+           
             plt.figure(figsize=(10, 10))
             plt.imshow(image)
 
-            height, width, _ = image.shape
-            # Draw true bounding boxes
-            # for box in true_box:
- 
-            #     ymin = box[0] * height
-            #     xmin = box[1] * width
-            #     ymax = box[2] * height
-            #     xmax = box[3] * width
-              
-            #     plt.gca().add_patch(plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, 
-            #                                        edgecolor='green', facecolor='none', linestyle='--', linewidth=2))
-            #     plt.text(xmin, ymin, 'True', color='green', fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
-
+            height, width, _ = image.shape    
             # Draw predicted bounding boxes
             for box in pred_boxes[j]:
                 ymin = box[0] * height
@@ -112,7 +94,6 @@ def predict_and_plot(model, test_dataset):
               
                 plt.gca().add_patch(plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, 
                                                    edgecolor='red', facecolor='none', linestyle='-', linewidth=2))
-                #plt.text(xmin, ymin, 'Pred', color='red', fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
 
             plt.title(f'Sample {j}')
             

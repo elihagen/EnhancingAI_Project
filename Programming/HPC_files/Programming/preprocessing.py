@@ -9,11 +9,11 @@ import tensorflow_datasets as tfds
 def read_and_preprocess_image(filename, input_shape):
     
     image = Image.open(filename)
-    image = image.resize((input_shape[1], input_shape[0]))  # 1st width, 2nd height
-    image = np.array(image) / 255.0  # normalize as above
+    image = image.resize((input_shape[1], input_shape[0]))  
+    image = np.array(image) / 255.0  
     return image
 
-def adjust_bboxes(bboxes, original_shape, input_shape):
+def adjust_bboxes(bboxes, original_shape):
    
     adjusted_bboxes = bboxes.astype(np.float32).copy()
     adjusted_bboxes[:, [0, 1]] = (adjusted_bboxes[:, [0, 1]] / original_shape[0]).astype(np.float32)
@@ -27,7 +27,7 @@ def data_generator(grouped_data, input_shape, original_shape):
         corrected_filename = os.path.join(base_path, filename.replace('\\', '/'))
         print("test: ",corrected_filename)
         image = read_and_preprocess_image(filename, input_shape)
-        bboxes = adjust_bboxes(bboxes, original_shape, input_shape)
+        bboxes = adjust_bboxes(bboxes, original_shape)
         yield image, (bboxes.astype(np.float32), labels.astype(np.int32))
 
 def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_ratio = 0.8):
@@ -57,27 +57,8 @@ def load_virtual_kitti_dataset(csv_filename, input_shape, original_shape, split_
 
     return train_dataset, test_dataset
 
-# def adjust_bboxes_kitti(bboxes, input_shape):
-#     height_ratio = input_shape[0]
-#     width_ratio = input_shape[1] 
-    
-#     # Convert bboxes to float32 tensor if not already
-#     bboxes = tf.cast(bboxes, tf.float32)
-    
-#     # Adjust bounding boxes
-#     adjusted_bboxes = bboxes
-#     adjusted_bboxes = tf.stack([
-#         adjusted_bboxes[:, 0]  * height_ratio,  # x1
-#         adjusted_bboxes[:, 1] *width_ratio,  # x2
-#         adjusted_bboxes[:, 2] *height_ratio, # y1
-#         adjusted_bboxes[:, 3] * width_ratio  # y2
-#     ], axis=-1)
-    
-#     return tf.cast(adjusted_bboxes, tf.int32)
-
 def preprocess_image(image, bbox, label, input_shape):
     # Filter out non-car objects (car: type = 0)
-    
     car_indices = tf.where(label == 0)[:, 0]
 
     bbox = tf.gather(bbox, car_indices)
@@ -86,7 +67,6 @@ def preprocess_image(image, bbox, label, input_shape):
     # filter out images with more objects inside the image
     num_objects = tf.shape(bbox)[0]
     max_objects = 63
-    # select max number of bboxes and orientation from the dataset
     bbox = tf.cond(num_objects <= max_objects,
                    lambda: bbox,
                    lambda: bbox[:max_objects])
@@ -100,14 +80,9 @@ def preprocess_image(image, bbox, label, input_shape):
     
 
     # Handling multiple objects in a single image
-    # Pad bounding boxes and orientations to a fixed number (16)
+    # Pad bounding boxes and orientations to a fixed number
     bbox = tf.pad(bbox, [[0, 63 - tf.shape(bbox)[0]], [0, 0]], constant_values=0)
     label = tf.pad(label, [[0, 63 - tf.shape(label)[0]]], constant_values=1)
-    
-    # print(image, label, bbox)
-
-    # tf.print("Padded Label content:", label, summarize=-1)
-    # tf.print("Padded BBox content:", bbox, summarize=-1)
 
     return image, (bbox, label)
 
@@ -117,8 +92,6 @@ def preprocess(example, input_shape):
     bbox = example['objects']['bbox']
     label = example['objects']['type']
 
-    # tf.print("Original Label content:", label, summarize=-1)
-    # tf.print("Original BBox content:", bbox, summarize=-1)
     # Preprocess each image, bbox, label
     image, (bbox, label) = preprocess_image(image, bbox, label, input_shape)
     
@@ -131,8 +104,6 @@ def load_kitti_dataset(split, input_shape):
 
     # Apply preprocessing function to dataset
     dataset = dataset.map(lambda example: preprocess(example, input_shape))
-   # dataset = dataset.filter(lambda image, labels: image is not None)
-
 
     return dataset
 
