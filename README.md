@@ -4,9 +4,9 @@ Welcome to the Project **Hybrid Data for Robust Object Detection in Autonomous D
 In this repository you can find the presentation that was conducted in preparation to the programming work, the lab diary of the project, the programming files for the 2D object detection model and its results. 
 
 You can run the code by cloning the repository: 
-'''bash
+```bash
 git clone https://github.com/elihagen/EnhancingAI_Project.git
-'''
+```
 
 You might have to install packages: 
 ```bash
