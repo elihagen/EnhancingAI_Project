@@ -9,19 +9,19 @@ git clone https://github.com/elihagen/EnhancingAI_Project.git
 '''
 
 You might have to install packages: 
-'''bash
+```bash
 pip install tensorflow
-'''
+```
 
 To train the model from a jupyter notebook: 
-'''bash
+```bash
 %run main.py --dataset "kitti"
-'''
+```
 
 To train the model from the terminal: 
-'''bash
+```bash
 python main.py --dataset "kitti"
-'''
+```
 
 Presentation Link: https://docs.google.com/presentation/d/1BE_FuIC-IuJKvj_FhnQa_sEOvbmL5La0mCjZHp-o9AE/edit?usp=sharing
 
